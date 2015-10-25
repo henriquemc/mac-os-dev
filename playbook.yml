@@ -1,0 +1,61 @@
+---
+- hosts: all
+  vars:
+    home: /Users/henrique/
+    src_home: /Users/henrique/Projetos
+    applications:
+      - google-chrome
+      - sublime-text
+      - eclipse-jee
+      - vagrant
+      - virtualbox
+      - virtualbox-extension-pack
+
+  tasks:
+    - name: easy install pip
+      easy_install: name=pip
+      sudo: yes
+
+    - name: install homebrew_taps
+      homebrew_tap: tap={{item}} state=present
+      with_items:
+          - gapple/services
+          - pivotal/tap
+          - caskroom/cask
+
+    - name: install apps from homebrew
+      sudo: false
+      homebrew: name={{item}} state=present update_homebrew=yes
+      with_items:
+          - git
+          - git-flow
+          - maven
+          - dos2unix
+          - wget
+          - brew-cask
+
+
+    # requires node/npm from above
+    - name: install global apps from npm
+      npm: name={{item}} global=yes
+      sudo: yes
+      with_items:
+          - grunt-cli
+
+#    - name: install gems
+#      gem: name={{item}} state=latest
+#      with_items:
+#          - brewbygems
+#          - bundler
+#          - compass
+
+    - name: Check for installed apps
+      shell: brew cask list | grep {{ item }}
+      register: installed_applications
+      with_items: applications
+      ignore_errors: true
+
+    - name: Install apps with brew-cask
+      shell: brew cask install {{ item }}
+      with_items: applications
+      when: item not in installed_applications.results|map(attribute='stdout')
